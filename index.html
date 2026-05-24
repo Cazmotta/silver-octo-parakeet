@@ -36,13 +36,6 @@
     .ch-url{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-top:1px}
     .ch-edit{font-size:12px;color:var(--muted);flex-shrink:0}
 
-    /* notif banner */
-    #notif-banner{display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--bg1);border:1px solid var(--line);border-radius:8px;margin-bottom:12px}
-    #notif-banner.hidden{display:none}
-    .nb-icon{font-size:16px;flex-shrink:0}
-    .nb-text{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted2);flex:1;line-height:1.5}
-    #notif-btn{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text);background:var(--bg3);border:1px solid var(--line2);border-radius:5px;padding:6px 10px;cursor:pointer;white-space:nowrap;touch-action:manipulation;-webkit-appearance:none}
-
     #api-row{display:flex;align-items:center;gap:8px;padding:9px 14px;background:var(--bg1);border:1px solid var(--line);border-radius:8px;margin-bottom:12px}
     #api-row.hidden{display:none}
     .api-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);flex-shrink:0;transition:background .3s}
@@ -129,13 +122,6 @@
     <span class="ch-edit">trocar ›</span>
   </div>
 
-  <!-- Notificação banner -->
-  <div id="notif-banner">
-    <span class="nb-icon">🔔</span>
-    <span class="nb-text" id="nb-text">Ative notificações para saber quando o canal ficar ao vivo.</span>
-    <button id="notif-btn">ativar</button>
-  </div>
-
   <div id="api-row" class="hidden">
     <div class="api-dot" id="api-dot"></div>
     <span id="api-status-text">—</span>
@@ -211,55 +197,12 @@ const S = {
 
 const $ = id => document.getElementById(id);
 
-/* ─────────────── Service Worker + notificações ─────────────── */
+/* ─────────────── Service Worker ─────────────── */
 async function registerSW() {
   if (!('serviceWorker' in navigator)) return;
   try {
     S.swReg = await navigator.serviceWorker.register('/sw.js');
-    console.log('[SW] registrado');
-    updateNotifBanner();
   } catch(e) { console.warn('[SW] falha:', e); }
-}
-
-function updateNotifBanner() {
-  const perm = Notification.permission;
-  if (perm === 'granted') {
-    $('notif-banner').classList.add('hidden');
-  } else if (perm === 'denied') {
-    $('nb-text').textContent = 'Notificações bloqueadas. Ative nas configurações do navegador.';
-    $('notif-btn').textContent = 'como ativar?';
-    $('notif-btn').onclick = () => alert('Clique no cadeado/ícone na barra de endereço e permita notificações para este site.');
-  } else {
-    $('notif-banner').classList.remove('hidden');
-    $('nb-text').textContent = 'Ative notificações para saber quando o canal ficar ao vivo.';
-    $('notif-btn').textContent = 'ativar';
-  }
-}
-
-async function requestNotifPermission() {
-  if (!('Notification' in window)) { toast('Notificações não suportadas neste navegador'); return; }
-  const perm = await Notification.requestPermission();
-  updateNotifBanner();
-  if (perm === 'granted') toast('🔔 notificações ativadas!');
-  else toast('notificação negada');
-}
-
-function notify(title, body, url) {
-  if (Notification.permission !== 'granted') return;
-  if (S.swReg) {
-    S.swReg.showNotification(title, {
-      body,
-      icon: '/icon-192.png',
-      badge: '/icon-96.png',
-      tag: 'twitch-live',
-      renotify: true,
-      data: { url },
-      actions: [{ action:'watch', title:'Assistir' }]
-    });
-  } else {
-    const n = new Notification(title, { body, icon:'/icon-192.png' });
-    if (url) n.onclick = () => { window.open(url,'_blank'); n.close(); };
-  }
 }
 
 /* ─────────────── OAuth ─────────────── */
@@ -337,14 +280,7 @@ function setLive(s) {
   tickUptime();
   if (S.uptimeInterval) clearInterval(S.uptimeInterval);
   S.uptimeInterval=setInterval(tickUptime,1000);
-  if (wasOffline) {
-    toast(`● ${S.channel} está ao vivo`);
-    notify(
-      `🔴 ${S.channel} está AO VIVO`,
-      `${s.game_name ? s.game_name+' — ' : ''}${s.title||''}`.trim() || 'clique para assistir',
-      `https://twitch.tv/${S.channel}`
-    );
-  }
+  if (wasOffline) toast(`● ${S.channel} está ao vivo`);
 }
 
 function setOffline() {
@@ -356,10 +292,7 @@ function setOffline() {
   $('status-sub').textContent='sem transmissão ativa';
   $('watch-link').classList.add('hidden');
   $('info-block').classList.add('hidden');
-  if (wasLive) {
-    toast(`○ ${S.channel} ficou offline`);
-    notify(`⬛ ${S.channel} ficou offline`, 'A transmissão foi encerrada.', null);
-  }
+  if (wasLive) toast(`○ ${S.channel} ficou offline`);
 }
 
 function tickUptime() {
@@ -414,7 +347,6 @@ tap('settings-btn', openPanel);
 tap('channel-strip', openPanel);
 tap('save-btn', saveSettings);
 tap('cancel-btn', closePanel);
-tap('notif-btn', requestNotifPermission);
 tap('token-refresh-btn', ()=>{S.token='';S.tokenExp=0;check();toast('renovando token…');});
 $('overlay').addEventListener('click',e=>{if(e.target===$('overlay'))closePanel();});
 $('overlay').addEventListener('touchend',e=>{if(e.target===$('overlay')){e.preventDefault();closePanel();}});
