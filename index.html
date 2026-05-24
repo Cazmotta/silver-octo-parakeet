@@ -373,7 +373,7 @@ function tickUptime() {
 
 /* ─────────────── UI helpers ─────────────── */
 function setApiStatus(type,text){$('api-row').classList.remove('hidden');$('api-dot').className='api-dot '+type;$('api-status-text').textContent=text;}
-function updateLastCheck(){const n=new Date(),t=`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}:${String(n.getSeconds()).padStart(2,'0')}`;$('last-check').textContent=`atualizado às ${t} · cada 1s`;}
+function updateLastCheck(){const n=new Date(),t=`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}:${String(n.getSeconds()).padStart(2,'0')}`;$('last-check').textContent=`atualizado às ${t}`;}
 let toastT;
 function toast(msg){const el=$('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),3200);}
 function showError(msg){$('api-error').innerHTML=msg;$('api-error').classList.remove('hidden');}
